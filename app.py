@@ -25,9 +25,9 @@ def download():
 
     try:
         if is_video:
-            fmt = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
-        else:
-            fmt = "bestaudio/best"
+    fmt = "best[ext=mp4]/best"
+else:
+    fmt = "140/bestaudio[ext=m4a]/bestaudio/best"
 
         ydl_opts = {
             "format": fmt,

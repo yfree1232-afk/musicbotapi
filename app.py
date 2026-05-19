@@ -27,7 +27,7 @@ def download():
         if is_video:
             fmt = "best[ext=mp4]/best"
         else:
-            fmt = "140/bestaudio[ext=m4a]/bestaudio/best"
+            fmt = "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/worst[ext=m4a]/worst"
 
         ydl_opts = {
             "format": fmt,

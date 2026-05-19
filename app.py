@@ -18,7 +18,6 @@ def download():
     if not query:
         return jsonify({"error": "query is required"}), 400
 
-    # YouTube ID ya search query
     if len(query) == 11 and " " not in query:
         search_query = f"https://www.youtube.com/watch?v={query}"
     else:
@@ -35,28 +34,18 @@ def download():
             "quiet": True,
             "no_warnings": True,
             "noplaylist": True,
-            "extract_flat": False,
-            "extractor_args": {
-                "youtube": {
-                    "player_client": ["android"],
-                }
-            },
-            "http_headers": {
-                "User-Agent": "com.google.android.youtube/17.36.4 (Linux; U; Android 12) gzip"
-            }
+            "cookiefile": "cookies.txt",
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(search_query, download=False)
 
-            # Search result handle karo
             if "entries" in info:
                 entries = list(info["entries"])
                 if not entries:
                     return jsonify({"error": "No results found"}), 404
                 info = entries[0]
 
-            # URL nikalo
             url = None
             if "url" in info:
                 url = info["url"]

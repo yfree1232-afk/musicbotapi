@@ -25,9 +25,9 @@ def download():
 
     try:
         if is_video:
-            fmt = "best[ext=mp4]/best"
+            fmt = "bestvideo+bestaudio/best"
         else:
-            fmt = "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/worst[ext=m4a]/worst"
+            fmt = "bestaudio/worst/best"
 
         ydl_opts = {
             "format": fmt,
@@ -35,6 +35,12 @@ def download():
             "no_warnings": True,
             "noplaylist": True,
             "cookiefile": "cookies.txt",
+            "format_sort": ["acodec:m4a", "acodec:aac", "acodec:mp3"],
+            "extractor_args": {
+                "youtube": {
+                    "player_client": ["android", "web"],
+                }
+            },
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:

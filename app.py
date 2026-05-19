@@ -33,11 +33,18 @@ def download():
             fmt = "bestaudio[ext=m4a]/bestaudio/best"
 
         ydl_opts = {
-            "format": fmt,
-            "quiet": True,
-            "no_warnings": True,
-            "noplaylist": True,
-            "extract_flat": False,
+    "format": fmt,
+    "quiet": True,
+    "no_warnings": True,
+    "noplaylist": True,
+    "extractor_args": {
+        "youtube": {
+            "player_client": ["android", "web"],
+        }
+    },
+    "http_headers": {
+        "User-Agent": "Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36"
+    }
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:

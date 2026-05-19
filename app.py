@@ -4,12 +4,10 @@ import os
 
 app = Flask(__name__)
 
-# Simple API key check (set this in Heroku env vars)
-API_KEY = os.environ.get("API_KEY", "myapikey123")
+API_KEY = os.environ.get("API_KEY", "ARC31f8531e8cd5b87c39c3b1")
 
 @app.route("/youtube/v2/download", methods=["GET"])
 def download():
-    # Check API key
     api_key = request.args.get("api_key")
     if api_key != API_KEY:
         return jsonify({"error": "Invalid API key"}), 401
@@ -20,52 +18,57 @@ def download():
     if not query:
         return jsonify({"error": "query is required"}), 400
 
-    # If it looks like a YouTube ID, prefix with URL
+    # YouTube ID ya search query
     if len(query) == 11 and " " not in query:
         search_query = f"https://www.youtube.com/watch?v={query}"
     else:
-        search_query = f"ytsearch1:{query}"
+        search_query = f"ytsearch:{query}"
 
     try:
         if is_video:
             fmt = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
         else:
-            fmt = "bestaudio[ext=m4a]/bestaudio/best"
+            fmt = "bestaudio/best"
 
         ydl_opts = {
-    "format": fmt,
-    "quiet": True,
-    "no_warnings": True,
-    "noplaylist": True,
-    "extractor_args": {
-        "youtube": {
-            "player_client": ["android", "web"],
-        }
-    },
-    "http_headers": {
-        "User-Agent": "Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36"
-    }
+            "format": fmt,
+            "quiet": True,
+            "no_warnings": True,
+            "noplaylist": True,
+            "extract_flat": False,
+            "extractor_args": {
+                "youtube": {
+                    "player_client": ["android"],
+                }
+            },
+            "http_headers": {
+                "User-Agent": "com.google.android.youtube/17.36.4 (Linux; U; Android 12) gzip"
+            }
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(search_query, download=False)
 
-            # Handle search result
+            # Search result handle karo
             if "entries" in info:
-                info = info["entries"][0]
+                entries = list(info["entries"])
+                if not entries:
+                    return jsonify({"error": "No results found"}), 404
+                info = entries[0]
 
-            # Get the direct URL
+            # URL nikalo
+            url = None
             if "url" in info:
                 url = info["url"]
-            elif "formats" in info:
-                formats = info["formats"]
-                # Pick best audio format
-                audio_formats = [f for f in formats if f.get("acodec") != "none" and f.get("url")]
-                if audio_formats:
-                    url = audio_formats[-1]["url"]
-                else:
-                    url = formats[-1]["url"]
-            else:
+            elif "formats" in info and info["formats"]:
+                for f in reversed(info["formats"]):
+                    if f.get("url") and f.get("acodec") != "none":
+                        url = f["url"]
+                        break
+                if not url:
+                    url = info["formats"][-1]["url"]
+
+            if not url:
                 return jsonify({"error": "Could not extract URL"}), 500
 
             return jsonify({

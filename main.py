@@ -13,14 +13,12 @@ def download_audio(
     isVideo: bool = Query(False),
     query: str = Query(...)
 ):
-    # Go bots ke liye extra custom headers taaki YouTube block na kare
     ydl_opts = {
         'format': 'bestaudio/best',
         'noplaylist': True,
         'quiet': True,
         'skip_download': True,
         'http_chunk_size': 1048576,
-        # Fake User-Agent taaki heroku IP block bypass ho sake
         'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     }
     
@@ -44,25 +42,25 @@ def download_audio(
             stream_url = video_data.get("url")
             
             if not stream_url:
-                raise Exception("Could not extract stream URL")
+                return {"success": False, "error": "Could not extract stream URL"}
 
-            # Go bot ke schema ke hisab se exact fields generate karna
+            # Yeh hai wo exact format jo Go bot dhoond raha hai (Nested "data" object)
             return {
-                "code": 200,
-                "status": "success",
-                "title": video_data.get("title"),
-                "id": video_data.get("id"),
-                "duration": int(video_data.get("duration", 0)),
-                "url": stream_url,
-                "download_url": stream_url,
-                "thumbnail": video_data.get("thumbnail", "")
+                "success": True,
+                "data": {
+                    "id": video_data.get("id"),
+                    "title": video_data.get("title"),
+                    "duration": int(video_data.get("duration", 0)),
+                    "thumbnail": video_data.get("thumbnail", ""),
+                    "url": stream_url,
+                    "download_url": stream_url,  # Go bot isko read karega
+                    "job_id": "arc_music_custom_sync" # Backup key agar wo job id mange
+                }
             }
             
     except Exception as e:
-        # Pura error detail return karega taaki hume heroku logs me dikhe dikkat kya hai
         return {
-            "code": 500,
-            "status": "error",
-            "message": str(e)
+            "success": False,
+            "error": str(e)
         }
         

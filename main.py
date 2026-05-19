@@ -7,30 +7,24 @@ app = FastAPI(title="ArcMusic Custom API Backend")
 def home():
     return {"status": "ok", "message": "Arc API clone is running smoothly."}
 
-# Bot is path par request bhej raha hai
 @app.get("/youtube/v2/download")
 def download_audio(
     api_key: str = Query(...),
     isVideo: bool = Query(False),
     query: str = Query(...)
 ):
-    """
-    Go bot se aane wali requests ko handle karega aur direct streaming/download URL dega.
-    """
-    # Aap chahein toh yahan custom API key validation bhi laga sakte hain, abhi sabhi ko allow kiya hai.
-    
+    # Go bots ke liye extra custom headers taaki YouTube block na kare
     ydl_opts = {
         'format': 'bestaudio/best',
         'noplaylist': True,
         'quiet': True,
         'skip_download': True,
-        # Khas taur par Telegram bots ke liye cookie ya user-agent errors se bachne ke liye
-        'http_chunk_size': 1048576, 
+        'http_chunk_size': 1048576,
+        # Fake User-Agent taaki heroku IP block bypass ho sake
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     }
     
-    # Agar query sirf ek video ID hai ya text hai, toh use handle karein
     if not query.startswith(("http://", "https://")):
-        # Agar sirf ID hai (jaise error me '8qX0VIVxivU' hai)
         if len(query) == 11 and " " not in query:
             url_to_extract = f"https://www.youtube.com/watch?v={query}"
         else:
@@ -42,23 +36,33 @@ def download_audio(
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url_to_extract, download=False)
             
-            if 'entries' in info:
+            if 'entries' in info and len(info['entries']) > 0:
                 video_data = info['entries'][0]
             else:
                 video_data = info
                 
             stream_url = video_data.get("url")
             
-            # Go bot ko response me direct URL ya JSON metadata chahiye hota hai. 
-            # Hum ek standard stream response object bhej rahe hain:
+            if not stream_url:
+                raise Exception("Could not extract stream URL")
+
+            # Go bot ke schema ke hisab se exact fields generate karna
             return {
+                "code": 200,
                 "status": "success",
                 "title": video_data.get("title"),
                 "id": video_data.get("id"),
-                "duration": video_data.get("duration"),
-                "url": stream_url,  # Direct audio stream link
-                "download_url": stream_url
+                "duration": int(video_data.get("duration", 0)),
+                "url": stream_url,
+                "download_url": stream_url,
+                "thumbnail": video_data.get("thumbnail", "")
             }
             
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Custom API Error: {str(e)}")
+        # Pura error detail return karega taaki hume heroku logs me dikhe dikkat kya hai
+        return {
+            "code": 500,
+            "status": "error",
+            "message": str(e)
+        }
+        
